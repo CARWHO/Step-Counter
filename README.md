@@ -1,4 +1,4 @@
-![RCAP Schematic](./RCAP Schematic.png)
+![RCAP Schematic](./RCAP-Schematic.png)
 
 # Step-Counter
 
