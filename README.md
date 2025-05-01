@@ -1,14 +1,16 @@
+![RCAP Schematic](./RCAP Schematic.png)
+
 # Step-Counter
 
 A personal step counter implemented on the STM32 Nucleo + IMU expansion board.
 
 ## Features
 
-- **Step Detection**: Counts steps using the onboard accelerometer.  
-- **Distance Tracking**: Converts steps to distance (0.9 m per step).  
-- **Step Goals**: Set and display progress toward a user-defined goal.  
-- **Alerts**: Notifies when the goal is reached.  
-- **Reset**: Full reset (steps, distance, goal) via the Nucleo reset button.  
+- **Step Detection**: Counts steps using the onboard accelerometer  
+- **Distance Tracking**: Converts steps to distance (0.9 m per step)  
+- **Step Goals**: Set and display progress toward a user-defined goal  
+- **Alerts**: Notifies when the goal is reached  
+- **Reset**: Full reset (steps, distance, goal) via the Nucleo reset button  
 - **Test Mode**:  
   - Enter by double-tapping SW2  
   - Use joystick to manually adjust step count  
