@@ -5,8 +5,12 @@
  *      Author: ohu15
  */
 
+#include <math.h>
+
 #include "counter_incrementer.h"
 #include "data_types.h"
+
+#define PERCENT 100
 
 // Internal (static) variables to track the current step count, distance, and goal
 static uint32_t current_steps = 0;
@@ -26,15 +30,22 @@ uint32_t counter_incrementer_get_steps(void)
     return current_steps;
 }
 
+uint32_t step_to_km_float(void)
+{
+    uint32_t total_m = (counter_incrementer_get_steps() * 9) / 10;
+    return (total_m % 1000) / 100;   // yields 0–9
+}
+
 uint32_t* counter_incrementer_get_distance(void)
 {
     // We return two values: index 0 for kilometers, index 1 for yards.
-    static uint32_t units[2];
+    static uint32_t units[3];
     uint32_t steps = counter_incrementer_get_steps();
 
     // km ≈ (steps * 9) / 10000.
 //    units[0] = (steps * 9) / 10000;
-    units[0] = STEPS_TO_KM(steps);
+    units[0] = STEPS_TO_KM_INTEGER(steps);
+    units[2] = step_to_km_float();
     // yards: 1 m ≈ 1.09394 yards, approximate by multiplying by 1094.
 //    units[1] = (steps * 9 * 1094) / 10000;
     units[1] = STEPS_TO_YARDS(steps);
@@ -81,4 +92,11 @@ uint16_t set_goal(void) {
 
 void counter_incrementer_update_goal(uint16_t new_goal) {
     step_goal = new_goal;
+}
+
+
+uint32_t counter_incrementer_get_percentage_goal(void) {
+
+	return (((counter_incrementer_get_steps() * PERCENT) / counter_incrementer_get_goal()) );
+
 }

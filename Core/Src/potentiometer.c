@@ -12,16 +12,20 @@
 
 #include <stdint.h>
 
+// Potentiometer timing MACROs
 #define POTEN_POLL_FREQ     20
 #define TICK_FREQUENCY_HZ      1000
 #define POTENTIOMETER_PERIOD_TICKS  (TICK_FREQUENCY_HZ / POTEN_POLL_FREQ)
 
 static uint32_t potentiometerNextRun = 0;
 
+
+
 void potentiometer_task_init(void)
 {
 	potentiometerNextRun = HAL_GetTick() + POTENTIOMETER_PERIOD_TICKS;
 }
+
 
 void potentiometer_task_execute(void)
 {
@@ -32,7 +36,7 @@ void potentiometer_task_execute(void)
     }
 }
 
-// Getter functions for potentiometer
+// Getter functions for potentiometer adc value
 uint16_t potentiometer_val(void) {
     return raw_adc[0];
 }

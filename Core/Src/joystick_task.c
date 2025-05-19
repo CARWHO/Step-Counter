@@ -10,11 +10,32 @@
 #include "adc.h"
 #include "data_types.h"
 #include <stdint.h>
+#include <stdlib.h>
 #include <stdbool.h>
+
 
 #define JOYSTICK_POLL_FREQ     20
 #define TICK_FREQUENCY_HZ      1000
 #define JOYSTICK_PERIOD_TICKS  (TICK_FREQUENCY_HZ / JOYSTICK_POLL_FREQ)
+
+
+#define RAW_ADC_LENGTH 3
+
+// Threshold value MACROs
+#define POSITION_REST						"rest"
+#define REST_PERCENTAGE_VALUE 				((int8_t) 0)
+#define MAX_POSITIVE_PERCENTAGE_VALUE 		((int8_t) 100)
+#define MAX_NEGATIVE_PERCENTAGE_VALUE 		((int8_t) -100)
+
+#define CLAMP_REST_POSITIVE_PERCENTAGE		((int8_t) 10)
+#define CLAMP_REST_NEGATIVE_PERCENTAGE		((int8_t) -10)
+#define CLAMP_POSITIVE_PERCENTAGE 			((int8_t) 80)
+#define CLAMP_NEGATIVE_PERCENTAGE 			((int8_t) -80)
+
+#define POSITIVE_DIRECTION_THRES			((int8_t)10)
+#define NEGATIVE_DIRECTION_THRES			((int8_t)-10)
+#define PERCENT								((int8_t)100)
+
 
 static uint32_t joystickNextRun = 0;
 uint16_t raw_adc[3];
@@ -24,18 +45,22 @@ void joystick_task_init(void)
     joystickNextRun = HAL_GetTick() + JOYSTICK_PERIOD_TICKS;
 }
 
+
+/*
+ * Execute function for the joystick task
+ */
 void joystick_task_execute(void)
 {
     uint32_t now = HAL_GetTick();
     if (now >= joystickNextRun)
     {
         // Trigger the ADC for joystick
-        HAL_ADC_Start_DMA(&hadc1, (uint32_t*)raw_adc, 3);
+        HAL_ADC_Start_DMA(&hadc1, (uint32_t*)raw_adc, RAW_ADC_LENGTH);
         joystickNextRun += JOYSTICK_PERIOD_TICKS;
     }
 }
 
-// Getter functions
+// Getter functions for x and y joystick values
 uint16_t joystick_Y_val(void) {
     return raw_adc[2];  // Assuming channel 0 is Y
 }
@@ -44,69 +69,94 @@ uint16_t joystick_X_val(void) {
     return raw_adc[1];  // Assuming channel 1 is X
 }
 
+
 bool joystick_click_pressed(void) {
     return (HAL_GPIO_ReadPin(JOYSTICK_CLICK_GPIO_Port, JOYSTICK_CLICK_Pin) == GPIO_PIN_RESET);
 }
 
 
-xy_display display_joystick_value_setup(void) {
-    uint16_t xVal = joystick_X_val();
-    uint16_t yVal = joystick_Y_val();
-    int16_t xPercent, yPercent;
 
-    if (xVal >= X_CENTER) {
-        xPercent = - ((xVal - X_CENTER) * VALUE_100) / (X_FULL_LEFT - X_CENTER);
+int16_t convert_adc_joystick_to_percentage(uint16_t coord_number, uint16_t center_number, uint16_t full_left, uint16_t full_right){
+
+	int16_t percentage;
+	if (coord_number >= center_number) {
+		percentage = - ((coord_number - center_number) * PERCENT) / (full_left - center_number);
     } else {
-        xPercent = ((X_CENTER - xVal) * VALUE_100) / (X_CENTER - X_FULL_RIGHT);
+    	percentage = ((center_number - coord_number) * PERCENT) / (center_number - full_right);
     }
 
-    if (yVal >= Y_CENTER) {
-        yPercent = - ((yVal - Y_CENTER) * VALUE_100) / (Y_FULL_DOWN - Y_CENTER);
-    } else {
-        yPercent = ((Y_CENTER - yVal) * VALUE_100) / (Y_CENTER - Y_FULL_UP);
-    }
+	return percentage;
 
-    if (xPercent > 100) xPercent = 100;
-    if (xPercent < -100) xPercent = -100;
-    if (yPercent > 100) yPercent = 100;
-    if (yPercent < -100) yPercent = -100;
+}
 
-    if (xPercent > VALUE_90) {
-        xPercent = 100;
-    } else if (xPercent < - VALUE_90) {
-        xPercent = -100;
-    }
-    if (yPercent > VALUE_90) {
-        yPercent = 100;
-    } else if (yPercent < - VALUE_90) {
-        yPercent = -100;
-    }
 
-    if (abs(xPercent) < VALUE_5) {
-        xPercent = 0;
-    }
-    if (abs(yPercent) < VALUE_5) {
-        yPercent = 0;
-    }
 
-    const char* x_state;
-    if (xPercent > VALUE_10) {
-        x_state = "right";
-    } else if (xPercent < -VALUE_10) {
-        x_state = "left";
-    } else {
-        x_state = "rest";
-    }
+/*
+ * Clamps value of the given number
+ * Used for percentage of x and y axis
+ */
+int8_t clamp_value_number(int8_t number) {
 
-    const char* y_state;
-    if (yPercent > VALUE_10) {
-        y_state = "UP";
-    } else if (yPercent < -VALUE_10) {
-        y_state = "DOWN";
-    } else {
-        y_state = "rest";
-    }
+	int8_t percentage = number;
 
+	if (number >= CLAMP_POSITIVE_PERCENTAGE) {
+
+		percentage = MAX_POSITIVE_PERCENTAGE_VALUE;
+
+	} else if (number <= CLAMP_NEGATIVE_PERCENTAGE){
+
+		percentage = MAX_NEGATIVE_PERCENTAGE_VALUE;
+
+		/*
+		 * Adding Deadzone
+		 */
+	} else if ((number >= CLAMP_REST_NEGATIVE_PERCENTAGE) && (number <= CLAMP_REST_POSITIVE_PERCENTAGE)) {
+
+		percentage = REST_PERCENTAGE_VALUE;
+	}
+
+	return percentage;
+}
+
+
+
+char* set_direction(int16_t percentage, char* primary_direction, char* secondary_direction) {
+
+	char* direction;
+
+	if (percentage > POSITIVE_DIRECTION_THRES) {
+
+		direction = primary_direction;
+
+	} else if ( percentage < (NEGATIVE_DIRECTION_THRES)) {
+
+		direction = secondary_direction;
+
+	} else {
+		direction =  POSITION_REST;
+	}
+
+	return direction;
+
+}
+
+xy_display get_xy_values(void) {
+
+    uint16_t xVal 	= joystick_X_val();
+    uint16_t yVal 	= joystick_Y_val();
+
+    // Getting percentage for x and y joystick
+    int8_t xPercent = convert_adc_joystick_to_percentage(xVal, X_CENTER, X_FULL_LEFT, X_FULL_RIGHT);
+    xPercent 		= clamp_value_number(xPercent);
+
+    int8_t yPercent = convert_adc_joystick_to_percentage(yVal, Y_CENTER, Y_FULL_DOWN, Y_FULL_UP);
+    yPercent 		= clamp_value_number(yPercent);
+
+    // Getting directions for x and y joystick
+    char* x_state 	= set_direction(xPercent, "right", "left");
+    char* y_state 	= set_direction(yPercent, "UP", "DOWN");
+
+    // Creating struct of the collected information
     xy_display xy_values = {
         .xVal = xVal,
         .yVal = yVal,

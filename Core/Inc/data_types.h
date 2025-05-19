@@ -10,8 +10,11 @@
 
 #include <stdbool.h>
 
+
+// Common MACRO's used across the program
+
 #define STEPS_TO_YARDS(STEPS) ((STEPS * 9 * 1094) / 10000)
-#define STEPS_TO_KM(STEPS) ((STEPS * 9) / 10000)
+#define STEPS_TO_KM_INTEGER(STEPS) ((STEPS * 9) / 10000)
 #define CONV_ADC_TO_GOAL(ADC_VALUE) ((ADC_VALUE * 15250UL) / 4096)
 #define INTEGER_ARITHMETHIC_250(NUM) ((NUM / 250) * 250)
 
@@ -31,6 +34,8 @@
 #define VALUE_10 	10
 #define VALUE_90 	90
 #define VALUE_100 	100
+
+
 
 
 

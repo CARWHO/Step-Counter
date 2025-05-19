@@ -21,7 +21,7 @@
 #include <string.h>
 
 // For scheduling
-#define BUTTON_POLL_FREQ       500
+#define BUTTON_POLL_FREQ       300
 #define TICK_FREQUENCY_HZ      1000
 #define BUTTON_PERIOD_TICKS    (TICK_FREQUENCY_HZ / BUTTON_POLL_FREQ)
 #define INC_DUTYCYCLE          10
@@ -29,8 +29,6 @@
 
 #define DOUBLE_PRESS_THRESHOLD_MS 300
 #define DEBOUNCE_DELAY_MS 50
-
-char uart_buffer[100];
 
 static uint32_t buttonNextRun = 0;
 static uint32_t Duty_cycle = 0;
@@ -41,6 +39,10 @@ static bool waiting_for_double_press = false;
 static uint32_t last_valid_up_press_time = 0;
 
 uint8_t UART_button_state = 0;
+
+uint8_t UART_button_state_get(void) {
+	return UART_button_state;
+}
 
 void uart_transmit_button(buttonState_t downState) {
 
@@ -71,25 +73,6 @@ void uart_transmit_button(buttonState_t downState) {
     }
     prev_down_pressed = current_down_pressed;
 
-    if (UART_button_state == 1)
-    {
-        snprintf(uart_buffer, sizeof(uart_buffer),
-                 "\n%d, %d, %d, %d, %ld, %ld km, %ld yd, %ld, %d, %d\n",
-                 joystick_X_val(),
-                 joystick_Y_val(),
-				 joystick_click_pressed(),
-                 state_getter(),
-                 counter_incrementer_get_steps(),
-                 counter_incrementer_get_distance()[0], //km
-				 counter_incrementer_get_distance()[1], //yards
-                 counter_incrementer_get_goal(),
-				 joystick_click_pressed(),
-                 potentiometer_val()
-
-				 );
-        HAL_UART_Transmit(&huart2, (uint8_t*)uart_buffer,
-                          strlen(uart_buffer), TIME_OUT_VALUE);
-    }
 }
 
 void button_task_init(void)
@@ -149,7 +132,10 @@ void button_task_execute(void)
         {
             rgb_led_toggle(RGB_DOWN);
             rgb_colour_all_on();
-            if (!prev_down_pressed_for_increment) {
+            /*
+             * ASK CIARAN THIS QUESTION:  We are stopping the incrementation at the current goal, it is still possible to reach > current goal if current goal % 80 != 0
+             */
+            if (!prev_down_pressed_for_increment && (counter_incrementer_get_steps() < counter_incrementer_get_goal())) {
                 counter_incrementer_increment_steps(80);
             }
             prev_down_pressed_for_increment = true;

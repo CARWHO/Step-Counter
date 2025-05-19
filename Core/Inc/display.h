@@ -11,23 +11,27 @@
 #include "data_types.h"
 
 
-//typedef struct {
-//	int16_t xVal;
-//	int16_t yVal;
-//	int16_t xPercent;
-//	int16_t yPercent;
-//	const char* x_state;
-//	const char* y_state;
-//
-//} xy_display;
 
-//xy_display display_joystick_value_setup(void);
-void joystick_display(xy_display);
+// Initialising function for the module
 void display_init (void);
+
+// Execute function for the module
 void display_execute(void);
-State state_getter(void);
+
+
+// Pads the string before displaying on the screen
 void pad_string(char* dest, size_t dest_size, const char* src, int width);
-xy_display get_xy_values(void);
+
+// For displaying title on the screen
+void display_title( char* title);
+
+
+/*
+ * For displaying string on the screen
+ * Note: it is not a variac function,
+ * can only take in one (1) input/ format specifier
+ */
+void format_display(int x, int y, const char* display_char, uint32_t input1);
 
 
 
