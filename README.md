@@ -3,7 +3,9 @@ A firmware project for a step counter implemented on an STM32 Nucleo Board, util
 
 ## 1. Description of Overall Project
 
-This project implements a step counter on an STM32 microcontroller using an LSM6DS IMU. It processes sensor data and displays information on an SSD1306 OLED screen.
+This project implements a step counter on an STM32 microcontroller using an LSM6DS IMU. It processes sensor data and displays information on an SSD1306 OLED screen. The hardware setup is detailed in the schematic below:
+
+![Hardware Schematic](images/RCAP-Schematic.png)
 
 Key features:
 - **Step Detection:** Uses filtered 3-axis accelerometer data and a peak detection algorithm.
@@ -25,7 +27,8 @@ The firmware is structured into distinct modules, each handling specific functio
 
 Key module categories include:
 - **Core Application Logic (`app.c`, `main.c`):** Initializes system and orchestrates tasks.
-- **Sensor & Data Processing (`imu_sensor.c`, `peak_detect.c`, `noise_filter.c`):** Handles IMU data acquisition, filtering, and step identification.
+- **Sensor & Data Processing (`imu_sensor.c`, `peak_detect.c`, `noise_filter.c`):** Handles IMU data acquisition. Raw accelerometer readings are smoothed by a moving-average filter (`noise_filter.c`) to reduce sensor noise. The `peak_detect.c` module then processes this filtered data, calculating the squared magnitude of the 3-axis acceleration. A step is registered when this magnitude crosses a predefined threshold with a rising edge, incorporating hysteresis to prevent false positives, as illustrated in the graph below.
+  ![Step Detection Graph](images/step%20detection.png)
 - **User Interface & Display (`display.c`, `state_selector.c`, `ssd1306` library):** Manages OLED display content and UI state transitions.
 - **Input Handling (`joystick_task.c`, `button_task.c`, `buttons.c`, `potentiometer.c`):** Processes inputs from joystick, buttons, and potentiometer.
 - **Feature Modules (`counter_incrementer.c`, `test_mode.c`, `buzzer.c`, `serial.c`):** Implements step counting, goal management, test functionalities, alerts, and serial communication.
