@@ -1,9 +1,9 @@
 # Step-Counter  
-A firmware project for a step counter implemented on an STM32 Nucleo Board, utilizing an Inertial Measurement Unit (IMU) for step detection.
+Firmware for a step counter on an STM32 Nucleo Board, using an LSM6DS IMU for step detection and an SSD1306 OLED for display.
 
-## 1. Description of Overall Project
+## 1. Project Overview
 
-This project implements a step counter on an STM32 microcontroller using an LSM6DS IMU. It processes sensor data and displays information on an SSD1306 OLED screen. The hardware setup is detailed in the schematic below:
+This project implements a step counter on an STM32 microcontroller with an LSM6DS IMU. It processes sensor data and displays information like step count, distance, and goals on an SSD1306 OLED screen. The hardware setup is detailed in the schematic below:
 
 ![Hardware Schematic](images/RCAP-Schematic.png)
 
@@ -19,9 +19,9 @@ Key features:
 
 The system employs a modular C-based design for clarity and maintainability.
 
-## 2. Justification and Description of Modularisation
+## 2. Code Structure and Modularisation
 
-The firmware is structured into distinct modules, each handling specific functionalities. This approach enhances code organization, readability, and independent development. For a detailed visual representation of the module interactions and data flow, please refer to the following diagram:
+The firmware is organised into distinct modules, each responsible for specific functionalities. This modular approach improves code organization, readability, and allows for easier maintenance and independent development. The diagram below illustrates module interactions and data flow:
 
 ![Modularisation Diagram](361modularization.png)
 
@@ -35,12 +35,12 @@ Key module categories include:
 - **Low-Level Control (`rgb.c`, `pwm.c`, `led_blinking.c`, `blinky.c`):** Manages LEDs and PWM outputs.
 - **Hardware Abstraction (STM32CubeMX generated HAL files):** Provides low-level drivers for MCU peripherals.
 
-## 3. Analysis of Firmware Operation
+## 3. Performance Overview
 
-The firmware operates on a cooperative multitasking model within a main super-loop in `app_main`, with each module polled at a fixed rate.
+The firmware uses a cooperative multitasking model. A main super-loop in `app_main` polls each module at a fixed rate.
 
-### 3.1 Measured execution times  
-Using TIM2 at 48 MHz and the in-code profiling technique from Lecture 24, we measured each task’s duration in ticks and converted to microseconds:
+### 3.1 Task Execution Times  
+Execution times for key tasks were measured using Timer TIM2 (clocked at 48 MHz). The table below shows each task's duration in microseconds:
 
 | Task                      | Freq (Hz) | Ticks Taken | Time per Call (µs)     |
 |---------------------------|----------:|------------:|-----------------------:|
@@ -51,10 +51,8 @@ Using TIM2 at 48 MHz and the in-code profiling technique from Lecture 24, we mea
 | test_mode_execute         |        20 |         853 |   853 / 48 ≈ 17.8       |
 | serial_task_execute       |       500 |      36 844 | 36 844 / 48 ≈ 768.4     |
 
-### 3.2 Deadline analysis  
-For each task _k_, the available time per invocation is  
-`P_k = 1 / F_k [s]`,  
-and the execution time is `T_k`. We check `T_k < P_k` for all tasks:
+### 3.2 Task Responsiveness  
+Each task must complete within its allocated period to ensure the system runs smoothly. The following table confirms that all tasks meet their respective deadlines:
 
 | Task                    | Period \(P_k\) | Exec. time \(T_k\) | Meets deadline? |
 |-------------------------|--------------:|-------------------:|:---------------:|
@@ -65,8 +63,8 @@ and the execution time is `T_k`. We check `T_k < P_k` for all tasks:
 | test_mode_execute       | 50 ms         | 0.018 ms           | ✓               |
 | serial_task_execute     | 2 ms          | 0.768 ms           | ✓               |
 
-### 3.3 CPU load & schedulability  
-Using the CPU-load formula `L_k = T_k × F_k` from Lecture 25, total load `L_tot = sum(L_k)`:
+### 3.3 CPU Load  
+The CPU load for each task (`L_k = T_k × F_k`) and the total system load (`L_tot = sum(L_k)`) are detailed below:
 
 | Task                    | \(T_k\) (s)        | \(F_k\) (Hz) | \(L_k=T_kF_k\)       |
 |-------------------------|---------------:|-------------:|---------------------:|
@@ -79,19 +77,14 @@ Using the CPU-load formula `L_k = T_k × F_k` from Lecture 25, total load `L_tot
 
 L_tot ≈ 0.0080 + 0.000006 + 0.00255 + 0.00033 + 0.00036 + 0.3842 ≈ 0.3955 < 1
 
-Since `L_tot ≈ 0.40 < 1`, the task set is schedulable under Rate-Monotonic priorities.
+The total CPU load is approximately 40%. This indicates that the system is schedulable and has significant headroom (around 60%) for future extensions or more demanding tasks. All tasks comfortably meet their deadlines.
 
-### 3.4 Interpretation  
-- **All tasks meet their deadlines** with comfortable margins.  
-- **Total CPU load ≈ 40 %**, leaving ~60 % headroom for future extensions or higher-level functions.  
-- Assigning priorities by frequency (highest `F_k` → highest priority) ensures predictable preemption and latency behavior.
+## 4. Summary and Future Enhancements
 
-## 4. Conclusion
-
-This profiling and schedulability analysis demonstrate that our firmware:
-- Executes all core tasks well within their timing budgets.
-- Leaves ample CPU slack (~60 %) for additional features or unplanned interrupts.
-- Adheres to a clean, modular design that simplifies both reasoning about timing and future maintenance.
+This firmware provides a responsive step counting solution with a clear, modular design. Key performance aspects include:
+- All tasks execute well within their timing budgets.
+- The overall CPU load is low, allowing for future expansion.
+- The modular design aids in maintenance and further development.
 
 **Potential future enhancements** could include:
 - Optimizing the most time-critical code paths (e.g., UART transmit) via DMA.  
