@@ -23,7 +23,7 @@ The system employs a modular C-based design for clarity and maintainability.
 
 The firmware is organised into distinct modules, each responsible for specific functionalities. This modular approach improves code organization, readability, and allows for easier maintenance and independent development. The diagram below illustrates module interactions and data flow:
 
-![Modularisation Diagram](modularization.png)
+![Modularisation Diagram](images/modularization.png)
 
 Key module categories include:
 - **Core Application Logic (`app.c`, `main.c`):** Initializes system and orchestrates tasks.
